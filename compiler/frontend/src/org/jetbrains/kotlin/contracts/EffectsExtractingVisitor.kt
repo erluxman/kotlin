@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.contracts
 
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.contracts.description.expressions.ConstantReference
 import org.jetbrains.kotlin.contracts.interpretation.ContractInterpretationDispatcher
 import org.jetbrains.kotlin.contracts.model.Computation
 import org.jetbrains.kotlin.contracts.model.ConditionalEffect
@@ -103,8 +104,8 @@ class EffectsExtractingVisitor(
         val value: Any? = compileTimeConstant.getValue(type)
 
         return when (value) {
-            is Boolean -> value.lift()
-            null -> ESConstant.NULL
+            is Boolean -> ESConstant.booleanValue(value, moduleDescriptor.builtIns)
+            null -> ESConstant.nullValue(moduleDescriptor.builtIns)
             else -> UNKNOWN_COMPUTATION
         }
     }
@@ -126,7 +127,8 @@ class EffectsExtractingVisitor(
         // null bypassing function's contract, so we have to filter them out
 
         fun ESEffect.containsReturnsNull(): Boolean =
-            isReturns { value == ESConstant.NULL } || this is ConditionalEffect && this.simpleEffect.containsReturnsNull()
+            isReturns { value.constantReference == ConstantReference.NULL } ||
+                    this is ConditionalEffect && this.simpleEffect.containsReturnsNull()
 
         val effectsWithoutReturnsNull = computation.effects.filter { !it.containsReturnsNull() }
         return CallComputation(computation.type, effectsWithoutReturnsNull)

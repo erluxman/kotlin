@@ -98,11 +98,11 @@ class Reducer : ESExpressionVisitor<ESExpression?> {
     override fun visitNot(not: ESNot): ESExpression? {
         val reducedArg = not.arg.accept(this) ?: return null
 
-        return when (reducedArg) {
-            ESConstant.TRUE -> ESConstant.FALSE
-            ESConstant.FALSE -> ESConstant.TRUE
-            else -> reducedArg
+        if (reducedArg is ESConstant && reducedArg.isBooleanConstant()) {
+            return reducedArg.negate()
         }
+
+        return reducedArg
     }
 
     override fun visitVariable(esVariable: ESVariable): ESVariable = esVariable

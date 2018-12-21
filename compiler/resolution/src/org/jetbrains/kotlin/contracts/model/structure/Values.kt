@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.contracts.model.structure
 
 import org.jetbrains.kotlin.builtins.DefaultBuiltIns
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.contracts.description.expressions.BooleanConstantReference
 import org.jetbrains.kotlin.contracts.description.expressions.ConstantReference
 import org.jetbrains.kotlin.contracts.model.ESExpression
@@ -24,7 +25,6 @@ import org.jetbrains.kotlin.contracts.model.ESExpressionVisitor
 import org.jetbrains.kotlin.contracts.model.ESValue
 import org.jetbrains.kotlin.descriptors.ValueDescriptor
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.typeUtil.makeNullable
 import java.util.*
 
 open class ESVariable(val descriptor: ValueDescriptor) : ESValue(descriptor.type) {
@@ -46,38 +46,56 @@ open class ESVariable(val descriptor: ValueDescriptor) : ESValue(descriptor.type
     override fun toString(): String = descriptor.toString()
 }
 
-open class ESConstant private constructor(open val constantReference: ConstantReference, override val type: KotlinType) : ESValue(type) {
+class ESConstant private constructor(val constantReference: ConstantReference, override val type: KotlinType) : ESValue(type) {
     override fun <T> accept(visitor: ESExpressionVisitor<T>): T = visitor.visitConstant(this)
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other?.javaClass != javaClass) return false
-
-        other as ESConstant
-
-        if (constantReference != other.constantReference) return false
-
-        return true
-    }
+    override fun equals(other: Any?): Boolean = other is ESConstant && constantReference == other.constantReference
 
     override fun hashCode(): Int = Objects.hashCode(constantReference)
 
     override fun toString(): String = constantReference.name
 
-    companion object {
-        val TRUE = ESConstant(BooleanConstantReference.TRUE, DefaultBuiltIns.Instance.booleanType)
-        val FALSE = ESConstant(BooleanConstantReference.FALSE, DefaultBuiltIns.Instance.booleanType)
-        val NULL = ESConstant(ConstantReference.NULL, DefaultBuiltIns.Instance.nothingType.makeNullable())
-        val NOT_NULL = ESConstant(ConstantReference.NOT_NULL, DefaultBuiltIns.Instance.anyType)
-        val WILDCARD = ESConstant(ConstantReference.WILDCARD, DefaultBuiltIns.Instance.anyType.makeNullable())
-    }
+    fun isNullConstant(): Boolean =
+        constantReference == ConstantReference.NULL || constantReference == ConstantReference.NOT_NULL
 
-    fun isNullConstant(): Boolean = this == NULL || this == NOT_NULL
+    fun isBooleanConstant(): Boolean =
+        constantReference is BooleanConstantReference
+
+    fun negate(): ESConstant =
+        if (isBooleanConstant())
+            booleanValue(constantReference == BooleanConstantReference.FALSE, type)
+        else
+            throw UnsupportedOperationException(constantReference.name)
+
+    companion object {
+        fun trueValue(builtIns: KotlinBuiltIns): ESConstant =
+            booleanValue(true, builtIns)
+
+        fun falseValue(builtIns: KotlinBuiltIns): ESConstant =
+            booleanValue(false, builtIns)
+
+        fun booleanValue(value: Boolean, builtIns: KotlinBuiltIns): ESConstant =
+            booleanValue(value, builtIns.booleanType)
+
+        fun booleanValue(value: Boolean, booleanType: KotlinType): ESConstant =
+            ESConstant(if (value) BooleanConstantReference.TRUE else BooleanConstantReference.FALSE, booleanType)
+
+        fun nullValue(builtIns: KotlinBuiltIns): ESConstant =
+            ESConstant(ConstantReference.NULL, builtIns.nullableNothingType)
+
+        fun notNullValue(builtIns: KotlinBuiltIns): ESConstant =
+            ESConstant(ConstantReference.NOT_NULL, builtIns.anyType)
+
+        fun wildcard(builtIns: KotlinBuiltIns): ESConstant =
+            ESConstant(ConstantReference.WILDCARD, builtIns.nullableAnyType)
+    }
 }
 
-fun Boolean.lift(): ESConstant = if (this) ESConstant.TRUE else ESConstant.FALSE
+// TODO: do not use DefaultBuiltIns here
+fun Boolean.lift(): ESConstant =
+    ESConstant.booleanValue(this, DefaultBuiltIns.Instance)
 
-internal val ESExpression.constantReference: ConstantReference?
+val ESExpression.constantReference: ConstantReference?
     get() = (this as? ESConstant)?.constantReference
 
 internal val ESExpression.isTrue: Boolean

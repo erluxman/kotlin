@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.contracts.interpretation
 
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.contracts.description.*
 import org.jetbrains.kotlin.contracts.description.expressions.ConstantReference
 import org.jetbrains.kotlin.contracts.description.expressions.VariableReference
@@ -62,8 +63,8 @@ class ContractInterpretationDispatcher(internal val module: ModuleDescriptor) {
         return convertedFunctors.singleOrNull()
     }
 
-    internal fun interpretConstant(constantReference: ConstantReference): ESConstant? =
-        constantsInterpreter.interpretConstant(constantReference)
+    internal fun interpretConstant(constantReference: ConstantReference, builtIns: KotlinBuiltIns): ESConstant? =
+        constantsInterpreter.interpretConstant(constantReference, builtIns)
 
     internal fun interpretCondition(booleanExpression: BooleanExpression): ESExpression? =
         booleanExpression.accept(conditionInterpreter, Unit)

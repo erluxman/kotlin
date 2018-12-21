@@ -22,11 +22,11 @@ import org.jetbrains.kotlin.contracts.model.ESEffect
 import org.jetbrains.kotlin.contracts.model.structure.*
 
 class OrFunctor : AbstractBinaryFunctor() {
-    override fun invokeWithConstant(computation: Computation, constant: ESConstant): List<ESEffect> = when (constant) {
-        ESConstant.FALSE -> computation.effects
-        ESConstant.TRUE -> emptyList()
+    override fun invokeWithConstant(computation: Computation, constant: ESConstant): List<ESEffect> = when {
+        constant.isFalse -> computation.effects
+        constant.isTrue -> emptyList()
 
-    // This means that expression isn't typechecked properly
+        // This means that expression isn't typechecked properly
         else -> computation.effects
     }
 

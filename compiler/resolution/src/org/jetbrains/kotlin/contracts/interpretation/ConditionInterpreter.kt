@@ -16,7 +16,7 @@
 
 package org.jetbrains.kotlin.contracts.interpretation
 
-import org.jetbrains.kotlin.contracts.description.*
+import org.jetbrains.kotlin.contracts.description.ContractDescriptionVisitor
 import org.jetbrains.kotlin.contracts.description.expressions.*
 import org.jetbrains.kotlin.contracts.model.ESExpression
 import org.jetbrains.kotlin.contracts.model.functors.IsFunctor
@@ -48,11 +48,11 @@ internal class ConditionInterpreter(private val dispatcher: ContractInterpretati
 
     override fun visitIsNullPredicate(isNullPredicate: IsNullPredicate, data: Unit): ESExpression? {
         val variable = dispatcher.interpretVariable(isNullPredicate.arg) ?: return null
-        return ESEqual(variable, ESConstant.NULL, isNullPredicate.isNegated)
+        return ESEqual(variable, ESConstant.nullValue(dispatcher.module.builtIns), isNullPredicate.isNegated)
     }
 
     override fun visitBooleanConstantDescriptor(booleanConstantDescriptor: BooleanConstantReference, data: Unit): ESExpression? =
-        dispatcher.interpretConstant(booleanConstantDescriptor)
+        dispatcher.interpretConstant(booleanConstantDescriptor, dispatcher.module.builtIns)
 
     override fun visitBooleanVariableReference(booleanVariableReference: BooleanVariableReference, data: Unit): ESExpression? =
         dispatcher.interpretVariable(booleanVariableReference)

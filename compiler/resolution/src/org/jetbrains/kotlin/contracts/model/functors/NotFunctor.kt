@@ -16,9 +16,9 @@
 
 package org.jetbrains.kotlin.contracts.model.functors
 
-import org.jetbrains.kotlin.contracts.model.structure.ESReturns
-import org.jetbrains.kotlin.contracts.model.structure.ESConstant
 import org.jetbrains.kotlin.contracts.model.ConditionalEffect
+import org.jetbrains.kotlin.contracts.model.structure.ESConstant
+import org.jetbrains.kotlin.contracts.model.structure.ESReturns
 
 class NotFunctor : AbstractUnaryFunctor() {
     override fun invokeWithReturningEffects(list: List<ConditionalEffect>): List<ConditionalEffect> = list.mapNotNull {
@@ -28,10 +28,9 @@ class NotFunctor : AbstractUnaryFunctor() {
         // can be non-boolean in case of type-errors in the whole expression, like "foo(bar) && 1"
         val returnValue = (outcome as ESReturns).value
 
-        when (returnValue) {
-            ESConstant.TRUE -> ConditionalEffect(it.condition, ESReturns(ESConstant.FALSE))
-            ESConstant.FALSE -> ConditionalEffect(it.condition, ESReturns(ESConstant.TRUE))
-            else -> null
-        }
+        if (returnValue is ESConstant && returnValue.isBooleanConstant())
+            ConditionalEffect(it.condition, ESReturns(returnValue.negate()))
+        else
+            null
     }
 }
