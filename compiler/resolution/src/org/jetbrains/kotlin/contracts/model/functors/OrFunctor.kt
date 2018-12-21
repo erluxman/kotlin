@@ -39,8 +39,11 @@ class OrFunctor : AbstractBinaryFunctor() {
          expression wasn't properly typechecked, we could get some senseless clauses here, e.g.
          with Returns(1) (note that they still *return* as guaranteed by AbstractSequentialBinaryFunctor).
          We will just ignore such clauses in order to make smartcasting robust while typing */
-        val (leftTrue, leftFalse) = left.strictPartition(ESReturns(true.lift()), ESReturns(false.lift()))
-        val (rightTrue, rightFalse) = right.strictPartition(ESReturns(true.lift()), ESReturns(false.lift()))
+
+        val leftTrue = left.filter { it.simpleEffect.isReturns { value.isTrue } }
+        val leftFalse = left.filter { it.simpleEffect.isReturns { value.isFalse } }
+        val rightTrue = right.filter { it.simpleEffect.isReturns { value.isTrue } }
+        val rightFalse = right.filter { it.simpleEffect.isReturns { value.isFalse } }
 
         val whenLeftReturnsTrue = foldConditionsWithOr(leftTrue)
         val whenRightReturnsTrue = foldConditionsWithOr(rightTrue)
