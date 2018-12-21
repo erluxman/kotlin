@@ -16,7 +16,6 @@
 
 package org.jetbrains.kotlin.contracts.model.structure
 
-import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.contracts.description.expressions.BooleanConstantReference
 import org.jetbrains.kotlin.contracts.description.expressions.ConstantReference
@@ -91,9 +90,16 @@ class ESConstant private constructor(val constantReference: ConstantReference, o
     }
 }
 
-// TODO: do not use DefaultBuiltIns here
-fun Boolean.lift(): ESConstant =
-    ESConstant.booleanValue(this, DefaultBuiltIns.Instance)
+class ESConstants(builtIns: KotlinBuiltIns) {
+    val trueValue = ESConstant.booleanValue(true, builtIns.booleanType)
+    val falseValue = ESConstant.booleanValue(false, builtIns.booleanType)
+    val nullValue = ESConstant.nullValue(builtIns)
+    val notNullValue = ESConstant.notNullValue(builtIns)
+    val wildcard = ESConstant.wildcard(builtIns)
+
+    fun booleanValue(value: Boolean) =
+        if (value) trueValue else falseValue
+}
 
 val ESExpression.constantReference: ConstantReference?
     get() = (this as? ESConstant)?.constantReference

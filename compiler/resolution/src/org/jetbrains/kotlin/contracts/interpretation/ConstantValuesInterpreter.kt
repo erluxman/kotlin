@@ -16,18 +16,18 @@
 
 package org.jetbrains.kotlin.contracts.interpretation
 
-import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.contracts.description.expressions.BooleanConstantReference
 import org.jetbrains.kotlin.contracts.description.expressions.ConstantReference
 import org.jetbrains.kotlin.contracts.model.structure.ESConstant
+import org.jetbrains.kotlin.contracts.model.structure.ESConstants
 
 internal class ConstantValuesInterpreter {
-    fun interpretConstant(constantReference: ConstantReference, builtIns: KotlinBuiltIns): ESConstant? = when (constantReference) {
-        BooleanConstantReference.TRUE -> ESConstant.trueValue(builtIns)
-        BooleanConstantReference.FALSE -> ESConstant.falseValue(builtIns)
-        ConstantReference.NULL -> ESConstant.nullValue(builtIns)
-        ConstantReference.NOT_NULL -> ESConstant.notNullValue(builtIns)
-        ConstantReference.WILDCARD -> ESConstant.wildcard(builtIns)
+    fun interpretConstant(constantReference: ConstantReference, constants: ESConstants): ESConstant? = when (constantReference) {
+        BooleanConstantReference.TRUE -> constants.trueValue
+        BooleanConstantReference.FALSE -> constants.falseValue
+        ConstantReference.NULL -> constants.nullValue
+        ConstantReference.NOT_NULL -> constants.notNullValue
+        ConstantReference.WILDCARD -> constants.wildcard
         else -> null
     }
 }

@@ -18,9 +18,10 @@ package org.jetbrains.kotlin.contracts.model.functors
 
 import org.jetbrains.kotlin.contracts.model.ConditionalEffect
 import org.jetbrains.kotlin.contracts.model.structure.ESConstant
+import org.jetbrains.kotlin.contracts.model.structure.ESConstants
 import org.jetbrains.kotlin.contracts.model.structure.ESReturns
 
-class NotFunctor : AbstractUnaryFunctor() {
+class NotFunctor(constants: ESConstants) : AbstractUnaryFunctor(constants) {
     override fun invokeWithReturningEffects(list: List<ConditionalEffect>): List<ConditionalEffect> = list.mapNotNull {
         val outcome = it.simpleEffect
 

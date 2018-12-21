@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.contracts
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.contracts.model.Computation
+import org.jetbrains.kotlin.contracts.model.ESComponents
 import org.jetbrains.kotlin.contracts.model.ESEffect
 import org.jetbrains.kotlin.contracts.model.MutableContextInfo
 import org.jetbrains.kotlin.contracts.model.functors.EqualsFunctor
@@ -51,7 +52,8 @@ class EffectSystem(val languageVersionSettings: LanguageVersionSettings, val dat
         val callExpression = resolvedCall.call.callElement as? KtCallExpression ?: return DataFlowInfo.EMPTY
         if (callExpression is KtDeclaration) return DataFlowInfo.EMPTY
 
-        val resultContextInfo = getContextInfoWhen(ESReturns(ESConstant.wildcard(module.builtIns)), callExpression, bindingTrace, module)
+        val components = ESComponents(module.builtIns)
+        val resultContextInfo = getContextInfoWhen(ESReturns(components.constants.wildcard), callExpression, bindingTrace, module)
 
         return resultContextInfo.toDataFlowInfo(languageVersionSettings, module.builtIns)
     }
@@ -70,11 +72,12 @@ class EffectSystem(val languageVersionSettings: LanguageVersionSettings, val dat
         val rightComputation =
             getNonTrivialComputation(rightExpression, bindingTrace, moduleDescriptor) ?: return ConditionalDataFlowInfo.EMPTY
 
-        val effects = EqualsFunctor(false).invokeWithArguments(leftComputation, rightComputation)
-
         val builtIns = moduleDescriptor.builtIns
-        val equalsContextInfo = InfoCollector(ESReturns(ESConstant.trueValue(builtIns)), builtIns).collectFromSchema(effects)
-        val notEqualsContextInfo = InfoCollector(ESReturns(ESConstant.falseValue(builtIns)), builtIns).collectFromSchema(effects)
+        val constants = ESComponents(builtIns).constants
+        val effects = EqualsFunctor(constants, false).invokeWithArguments(leftComputation, rightComputation)
+
+        val equalsContextInfo = InfoCollector(ESReturns(constants.trueValue), builtIns).collectFromSchema(effects)
+        val notEqualsContextInfo = InfoCollector(ESReturns(constants.falseValue), builtIns).collectFromSchema(effects)
 
         return ConditionalDataFlowInfo(
             equalsContextInfo.toDataFlowInfo(languageVersionSettings, builtIns),

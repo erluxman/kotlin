@@ -22,37 +22,40 @@ import org.jetbrains.kotlin.contracts.model.ESExpression
 import org.jetbrains.kotlin.contracts.model.functors.IsFunctor
 import org.jetbrains.kotlin.contracts.model.structure.*
 
-internal class ConditionInterpreter(private val dispatcher: ContractInterpretationDispatcher) :
-    ContractDescriptionVisitor<ESExpression?, Unit> {
+internal class ConditionInterpreter(
+    private val dispatcher: ContractInterpretationDispatcher
+) : ContractDescriptionVisitor<ESExpression?, Unit> {
+    private val constants = dispatcher.components.constants
+
     override fun visitLogicalOr(logicalOr: LogicalOr, data: Unit): ESExpression? {
         val left = logicalOr.left.accept(this, data) ?: return null
         val right = logicalOr.right.accept(this, data) ?: return null
-        return ESOr(left, right)
+        return ESOr(constants, left, right)
     }
 
     override fun visitLogicalAnd(logicalAnd: LogicalAnd, data: Unit): ESExpression? {
         val left = logicalAnd.left.accept(this, data) ?: return null
         val right = logicalAnd.right.accept(this, data) ?: return null
-        return ESAnd(left, right)
+        return ESAnd(constants, left, right)
     }
 
     override fun visitLogicalNot(logicalNot: LogicalNot, data: Unit): ESExpression? {
         val arg = logicalNot.arg.accept(this, data) ?: return null
-        return ESNot(arg)
+        return ESNot(constants, arg)
     }
 
     override fun visitIsInstancePredicate(isInstancePredicate: IsInstancePredicate, data: Unit): ESExpression? {
         val esVariable = dispatcher.interpretVariable(isInstancePredicate.arg) ?: return null
-        return ESIs(esVariable, IsFunctor(isInstancePredicate.type, isInstancePredicate.isNegated))
+        return ESIs(esVariable, IsFunctor(constants, isInstancePredicate.type, isInstancePredicate.isNegated))
     }
 
     override fun visitIsNullPredicate(isNullPredicate: IsNullPredicate, data: Unit): ESExpression? {
         val variable = dispatcher.interpretVariable(isNullPredicate.arg) ?: return null
-        return ESEqual(variable, ESConstant.nullValue(dispatcher.module.builtIns), isNullPredicate.isNegated)
+        return ESEqual(constants, variable, constants.nullValue, isNullPredicate.isNegated)
     }
 
     override fun visitBooleanConstantDescriptor(booleanConstantDescriptor: BooleanConstantReference, data: Unit): ESExpression? =
-        dispatcher.interpretConstant(booleanConstantDescriptor, dispatcher.module.builtIns)
+        dispatcher.interpretConstant(booleanConstantDescriptor)
 
     override fun visitBooleanVariableReference(booleanVariableReference: BooleanVariableReference, data: Unit): ESExpression? =
         dispatcher.interpretVariable(booleanVariableReference)
