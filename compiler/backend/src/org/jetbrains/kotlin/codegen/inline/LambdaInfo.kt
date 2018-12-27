@@ -166,7 +166,8 @@ class DefaultLambda(
             classReader.b,
             invokeMethod.name,
             invokeMethod.descriptor,
-            lambdaClassType
+            lambdaClassType,
+            signatureAmbiguity = true
         ) ?: error("Can't find method '${invokeMethod.name}${invokeMethod.descriptor}' in '${classReader.className}'")
 
         if (needReification) {
