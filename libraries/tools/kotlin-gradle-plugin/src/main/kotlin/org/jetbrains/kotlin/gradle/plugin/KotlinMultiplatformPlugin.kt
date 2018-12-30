@@ -203,52 +203,6 @@ open class KotlinPlatformImplementationPluginBase(platformName: String) : Kotlin
         }
 }
 
-internal class RunOnceAfterEvaluated(private val name: String, private val fn: () -> (Unit)) {
-    private val logger = Logging.getLogger(this.javaClass)!!
-    private var executed = false
-    private var configured = false
-    private var evaluated = false
-
-    @Synchronized
-    private fun execute() {
-        logger.debug("[$name] RunOnceAfterEvaluated - execute executed=$executed evaluated=$evaluated configured=$configured")
-        if (!executed) {
-            logger.debug("[$name] RunOnceAfterEvaluated - EXECUTING executed=$executed evaluated=$evaluated configured=$configured")
-            fn()
-        }
-        executed = true
-    }
-
-    @Synchronized
-    fun onEvaluated() {
-        logger.debug("[$name] RunOnceAfterEvaluated - onEvaluated executed=$executed evaluated=$evaluated configured=$configured")
-        evaluated = true
-        if (configured) {
-            execute()
-        }
-    }
-
-    @Synchronized
-    fun onConfigure() {
-        logger.debug("[$name] RunOnceAfterEvaluated - onConfigure executed=$executed evaluated=$evaluated configured=$configured")
-        configured = true
-        if (evaluated) {
-            execute()
-        }
-    }
-}
-
-internal fun Project.whenEvaluated(fn: RunOnceAfterEvaluated, task: TaskHolder<*>) {
-    if (state.executed) {
-        fn.onEvaluated()
-    } else {
-        afterEvaluate { fn.onEvaluated() }
-    }
-    task.configure {
-        fn.onConfigure()
-    }
-}
-
 internal fun <T> Project.whenEvaluated(fn: Project.() -> T) {
     if (state.executed) {
         fn()

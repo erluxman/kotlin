@@ -22,20 +22,20 @@ import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.types.typesApproximation.approximateCapturedTypesIfNecessary
 
 class TaskProviderHolder<T : Task> : TaskHolder<T> {
-    val provider: TaskProvider<T>
-    val name: String
-    val configurator: TaskConfigurator<T>
+    private val provider: TaskProvider<T>
+    private val name: String
+    private val configurator: TaskConfigurator<T>
 
     constructor(project: Project, name: String, type: Class<T>, initAction: (T) -> (Unit)) : super(null, null) {
         configurator = TaskConfigurator(initAction)
-        this.provider = project.tasks.register(name, type, configurator)
+        provider = project.tasks.register(name, type, configurator)
         this.name = name
     }
 
     override fun getTaskOrProvider(): Any = provider
 
     override fun doGetTask(): T {
-        return provider.get();
+        return provider.get()
     }
 
     override fun configure(action: (T) -> (Unit)) {

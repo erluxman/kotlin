@@ -184,7 +184,7 @@ internal class Kotlin2JvmSourceSetProcessor(
 
         ScriptingGradleSubplugin.configureForSourceSet(project, kotlinCompilation.compilationName)
 
-        val runOnce = RunOnceAfterEvaluated("Kotlin2JvmSourceSetProcessor.doTargetSpecificProcessing") {
+        project.runOnceAfterEvaluated("Kotlin2JvmSourceSetProcessor.doTargetSpecificProcessing", kotlinTask) {
             val kotlinTaskInstance = kotlinTask.doGetTask()
             val javaTask = javaSourceSet?.let { project.tasks.findByName(it.compileJavaTaskName) as JavaCompile }
 
@@ -214,7 +214,6 @@ internal class Kotlin2JvmSourceSetProcessor(
                 registerKotlinOutputForJavaLibrary(classesDirectory, classesProviderTask)
             }
         }
-        project.whenEvaluated(runOnce, kotlinTask)
     }
 
     private fun registerKotlinOutputForJavaLibrary(outputDir: File, taskDependency: Task): Boolean {
@@ -267,8 +266,11 @@ internal class Kotlin2JsSourceSetProcessor(
     project, tasksProvider, taskDescription = "Compiles the Kotlin sources in $kotlinCompilation to JavaScript.",
     kotlinCompilation = kotlinCompilation
 ) {
-    //protected abstract fun doRegisterTask(project: Project, taskName: String, configureAction: (T) -> (Unit)): TaskHolder<out T>
-    override fun doRegisterTask(project: Project, taskName: String, configureAction: (Kotlin2JsCompile) -> (Unit)): TaskHolder<out Kotlin2JsCompile> =
+    override fun doRegisterTask(
+        project: Project,
+        taskName: String,
+        configureAction: (Kotlin2JsCompile) -> (Unit)
+    ): TaskHolder<out Kotlin2JsCompile> =
         tasksProvider.registerKotlinJSTask(project, taskName, kotlinCompilation, configureAction)
 
     override fun doTargetSpecificProcessing() {
@@ -281,7 +283,7 @@ internal class Kotlin2JsSourceSetProcessor(
         }
 
         // outputFile can be set later during the configuration phase, get it only after the phase:
-        val runOnce = RunOnceAfterEvaluated("Kotlin2JsSourceSetProcessor.doTargetSpecificProcessing") {
+        project.runOnceAfterEvaluated("Kotlin2JsSourceSetProcessor.doTargetSpecificProcessing", kotlinTask) {
             val kotlinTaskInstance = kotlinTask.doGetTask()
             kotlinTaskInstance.kotlinOptions.outputFile = kotlinTaskInstance.outputFile.absolutePath
             val outputDir = kotlinTaskInstance.outputFile.parentFile
@@ -309,19 +311,16 @@ internal class Kotlin2JsSourceSetProcessor(
                 .flatMap { it.getSubpluginKotlinTasks(project, kotlinTaskInstance) }
                 .forEach { task -> kotlinCompilation.allKotlinSourceSets.forEach { sourceSet -> task.source(sourceSet.kotlin) } }
         }
-        project.whenEvaluated(runOnce, kotlinTask)
-
     }
 
     private fun registerCleanSourceMapTask() {
         val taskName = kotlinCompilation.composeName("clean", "sourceMap")
-        val task = registerTask(project, taskName, Delete::class.java) {
+        registerTask(project, taskName, Delete::class.java) {
             it.onlyIf { kotlinTask.doGetTask().kotlinOptions.sourceMap }
             it.delete(object : Closure<String>(this) {
                 override fun call(): String? = (kotlinTask.doGetTask().property("outputFile") as File).canonicalPath + ".map"
             })
         }
-        //TODO improve
         project.tasks.findByName("clean")?.dependsOn(taskName)
     }
 }
@@ -342,7 +341,7 @@ internal class KotlinCommonSourceSetProcessor(
             project.tasks.findByName(kotlinCompilation.target.artifactsTaskName)?.dependsOn(kotlinTask.getTaskOrProvider())
         }
 
-        val runOnce = RunOnceAfterEvaluated("KotlinCommonSourceSetProcessor.doTargetSpecificProcessing:344") {
+        project.runOnceAfterEvaluated("KotlinCommonSourceSetProcessor.doTargetSpecificProcessing", kotlinTask) {
             val kotlinTaskInstance = kotlinTask.doGetTask()
             val subpluginEnvironment: SubpluginEnvironment = SubpluginEnvironment.loadSubplugins(project, kotlinPluginVersion)
             val appliedPlugins = subpluginEnvironment.addSubpluginOptions(
@@ -352,7 +351,6 @@ internal class KotlinCommonSourceSetProcessor(
                 .flatMap { it.getSubpluginKotlinTasks(project, kotlinTaskInstance) }
                 .forEach { kotlinCompilation.allKotlinSourceSets.forEach { sourceSet -> it.source(sourceSet.kotlin) } }
         }
-        project.whenEvaluated(runOnce, kotlinTask)
     }
 
     // protected abstract fun doRegisterTask(project: Project, taskName: String, configureAction: (T) -> (Unit)): TaskHolder<out T>
@@ -520,7 +518,7 @@ internal fun configureDefaultVersionsResolutionStrategy(project: Project, kotlin
     }
 }
 
-internal open class KotlinPlugin(
+internal open class aKotlinPlugin(
     kotlinPluginVersion: String,
     registry: ToolingModelBuilderRegistry
 ) : AbstractKotlinPlugin(KotlinTasksProvider(targetName), kotlinPluginVersion, registry) {
@@ -870,14 +868,14 @@ internal fun registerSyncOutputTask(
         it.kotlinTask = kotlinCompile
         it.kaptClassesDir = getKaptGeneratedClassesDir(project, variantName)
         // copying should be executed after a latter task
-        javaTask.finalizedByIfNotFailed(it)//TODO make sure it works
+        javaTask.finalizedByIfNotFailed(it)
     }
 
     kotlinCompile.javaOutputDir = javaDir
 
-    project.logger.kotlinDebug { "Created task ${syncTask.doGetTask().path} to copy kotlin classes from $kotlinDir to $javaDir" }//TODO
+    project.logger.kotlinDebug { "Created task ${syncTask.doGetTask().path} to copy kotlin classes from $kotlinDir to $javaDir" }
 
-    return syncTask.doGetTask()//TODO
+    return syncTask.doGetTask()
 }
 
 private fun ifKaptEnabled(project: Project, block: () -> Unit) {
