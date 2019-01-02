@@ -6,7 +6,10 @@
 package org.jetbrains.kotlin.codegen.inline
 
 import com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.codegen.*
+import org.jetbrains.kotlin.codegen.AsmUtil
+import org.jetbrains.kotlin.codegen.OwnerKind
+import org.jetbrains.kotlin.codegen.PropertyReferenceCodegen
+import org.jetbrains.kotlin.codegen.StackValue
 import org.jetbrains.kotlin.codegen.binding.CalculatedClosure
 import org.jetbrains.kotlin.codegen.binding.CodegenBinding
 import org.jetbrains.kotlin.codegen.binding.CodegenBinding.*
@@ -157,20 +160,18 @@ class DefaultLambda(
 
         isBoundCallableReference = (isFunctionReference || isPropertyReference) && capturedVars.isNotEmpty()
 
-        val invokeMethod = Method(
-            (if (isPropertyReference) OperatorNameConventions.GET else OperatorNameConventions.INVOKE).asString(),
-            sourceCompiler.state.typeMapper.mapSignatureSkipGeneric(invokeMethodDescriptor).asmMethod.descriptor
-        )
+        val methodName = if (isPropertyReference) OperatorNameConventions.GET else OperatorNameConventions.INVOKE
+        val signature = sourceCompiler.state.typeMapper.mapSignatureSkipGeneric(invokeMethodDescriptor).asmMethod.descriptor
 
         node = getMethodNode(
             classReader.b,
-            invokeMethod.name,
-            invokeMethod.descriptor,
+            methodName.asString(),
+            signature,
             lambdaClassType,
             signatureAmbiguity = true
-        ) ?: error("Can't find method '${invokeMethod.name}${invokeMethod.descriptor}' in '${classReader.className}'")
+        ) ?: error("Can't find method '$methodName$signature' in '${classReader.className}'")
 
-        this.invokeMethod = Method(invokeMethod.name, node.node.desc)
+        invokeMethod = Method(node.node.name, node.node.desc)
 
         if (needReification) {
             //nested classes could also require reification
