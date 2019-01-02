@@ -157,7 +157,7 @@ class DefaultLambda(
 
         isBoundCallableReference = (isFunctionReference || isPropertyReference) && capturedVars.isNotEmpty()
 
-        invokeMethod = Method(
+        val invokeMethod = Method(
             (if (isPropertyReference) OperatorNameConventions.GET else OperatorNameConventions.INVOKE).asString(),
             sourceCompiler.state.typeMapper.mapSignatureSkipGeneric(invokeMethodDescriptor).asmMethod.descriptor
         )
@@ -169,6 +169,8 @@ class DefaultLambda(
             lambdaClassType,
             signatureAmbiguity = true
         ) ?: error("Can't find method '${invokeMethod.name}${invokeMethod.descriptor}' in '${classReader.className}'")
+
+        this.invokeMethod = Method(invokeMethod.name, node.node.desc)
 
         if (needReification) {
             //nested classes could also require reification
